@@ -238,9 +238,9 @@ const rabbit = computed(() => nodes.value.find((node) => node.id === here.value)
           <Picture :name="item.art" :color="item.color" :size="item.size || 'm'" />
         </button>
       </div>
-    </template
+    </template>
 
-    <!-- 规律 -->
+    <!-- 规律：题目行贴近，选项再往下留空 -->
     <div v-else-if="level.mode === 'pattern'" class="pattern">
       <div class="row">
         <div v-for="(bit, index) in level.pattern" :key="index" class="cell">
@@ -262,18 +262,20 @@ const rabbit = computed(() => nodes.value.find((node) => node.id === here.value)
       </div>
     </div>
 
-    <!-- 少了什么 -->
-    <div v-else-if="level.mode === 'missing'" class="pattern">
-      <div class="row sample-row">
-        <div v-for="(bit, index) in level.pattern" :key="'s' + index" class="cell">
-          <Picture :name="bit.art" :color="bit.color" />
+    <!-- 少了什么：上下两排题目贴紧，底部选项单独拉开 -->
+    <div v-else-if="level.mode === 'missing'" class="missing-board">
+      <div class="rows">
+        <div class="row">
+          <div v-for="(bit, index) in level.pattern" :key="'s' + index" class="cell">
+            <Picture :name="bit.art" :color="bit.color" />
+          </div>
         </div>
-      </div>
-      <div class="row">
-        <div v-for="(bit, index) in (level.pattern || []).slice(0, -1)" :key="'h' + index" class="cell">
-          <Picture :name="bit.art" :color="bit.color" />
+        <div class="row">
+          <div v-for="(bit, index) in (level.pattern || []).slice(0, -1)" :key="'h' + index" class="cell">
+            <Picture :name="bit.art" :color="bit.color" />
+          </div>
+          <div class="cell hole">?</div>
         </div>
-        <div class="cell hole">?</div>
       </div>
       <div class="tray">
         <button
@@ -397,10 +399,21 @@ const rabbit = computed(() => nodes.value.find((node) => node.id === here.value)
 .ghost-slot { width: 72px; height: 72px; opacity: .28; pointer-events: none; }
 .inside { display: flex; justify-content: center; flex: 1; align-items: center; }
 .mini { width: 72px; height: 72px; }
-.row { display: flex; gap: 8px; justify-content: center; align-items: center; }
-.cell { width: 68px; height: 68px; background: #fff; border-radius: 18px; padding: 6px; box-shadow: var(--shadow); }
+.row { display: flex; gap: 10px; justify-content: center; align-items: center; }
+.cell { width: 72px; height: 72px; background: #fff; border-radius: 18px; padding: 6px; box-shadow: var(--shadow); }
 .hole { display: grid; place-items: center; font-size: 28px; font-weight: 800; color: #ff9f43; }
-.sample-row { transform: scale(.86); }
+/* 规律题：题目和选项拉开，整体居中 */
+.pattern {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 1; min-height: 0; gap: 28px;
+}
+/* 缺项题：两排题目挤一点，选项再往下空一截 */
+.missing-board {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 1; min-height: 0; gap: 32px;
+}
+.missing-board .rows { display: flex; flex-direction: column; gap: 12px; }
+.missing-board .piece { width: 112px; height: 112px; }
 .path { position: relative; flex: 1; min-height: 220px; background: rgba(255,255,255,.45); border-radius: 24px; }
 .road { position: absolute; inset: 0; width: 100%; height: 100%; }
 .stone {
