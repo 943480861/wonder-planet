@@ -250,6 +250,8 @@ export type LogicMode = 'pick' | 'sizes' | 'lineup' | 'pattern' | 'missing' | 'p
 export interface LogicLevel extends LevelBase {
   gameId: 'logic'
   mode: LogicMode
+  /** 找一样时摆在上面给孩子对照的样子 */
+  sample?: LogicChoice
   choices?: LogicChoice[]
   items?: LogicChoice[]
   pattern?: Array<{ art: string; color?: string; shape?: string }>

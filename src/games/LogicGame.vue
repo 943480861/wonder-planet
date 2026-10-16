@@ -75,19 +75,18 @@ function answerPattern(id: string): void {
 
 /**
  * 大球小球分开放，或按从小到大放进格子。
+ * 格子 id 就是 s / m / l，直接和积木大小比对。
  * @param item 物品
  * @param zone 区域
  */
 function dropSize(item: LogicChoice, zone: string): void {
   if (finished.value || placed.value[item.id]) return
-  const expect = props.level.mode === 'lineup' ? ['s', 'm', 'l'][Number(zone)] : zone
-  if (item.size !== expect) {
+  if (item.size !== zone) {
     wrong()
     return
   }
   placed.value = { ...placed.value, [item.id]: zone }
-  const source = props.level.mode === 'lineup' ? items.value : items.value
-  if (source.every((one) => placed.value[one.id])) complete()
+  if (items.value.every((one) => placed.value[one.id])) complete()
   else right()
 }
 
@@ -140,7 +139,7 @@ function move(dir: 'left' | 'right'): void {
 }
 
 /**
- * 拖动大小物品。
+ * 拖动大小物品。松手落在格子上就放进去；没拖动则改成点选。
  * @param event 指针
  * @param item 物品
  */
@@ -148,6 +147,7 @@ function onDown(event: PointerEvent, item: LogicChoice): void {
   if (finished.value || placed.value[item.id]) return
   start(event, item.id, (result) => {
     if (!result) return
+    // 轻点只选中，避免积木离格子太近时被当成放进去
     if (!result.moved) {
       selected.value = selected.value === item.id ? null : item.id
       return
@@ -173,33 +173,51 @@ const rabbit = computed(() => nodes.value.find((node) => node.id === here.value)
 
 <template>
   <div ref="root" class="logic">
-    <!-- 找一样 / 又大又红 -->
-    <div v-if="level.mode === 'pick'" class="choices">
-      <div v-if="level.index === 1" class="sample"><Picture name="ball" color="blue" /></div>
-      <button
-        v-for="item in choices"
-        :key="item.id"
-        class="piece"
-        :class="{ 'hint-glow': assist && correctPick(item) }"
-        :aria-label="item.label"
-        @click="pick(item)"
-      >
-        <Picture :name="item.art" :color="item.color" :size="item.size || 'm'" />
-      </button>
+    <!-- 找一样 / 又大又红：样例单独放上面，不和选项挤成一排 -->
+    <div v-if="level.mode === 'pick'" class="pick-board">
+      <div v-if="level.sample" class="sample-block">
+        <p class="sample-tag">看这个</p>
+        <div class="sample">
+          <Picture :name="level.sample.art" :color="level.sample.color" :size="level.sample.size || 'm'" />
+        </div>
+      </div>
+      <p class="how">点一个长得一样的</p>
+      <div class="choices">
+        <button
+          v-for="item in choices"
+          :key="item.id"
+          class="piece"
+          :class="{ 'hint-glow': assist && correctPick(item) }"
+          :aria-label="item.label"
+          @click="pick(item)"
+        >
+          <Picture :name="item.art" :color="item.color" :size="item.size || 'm'" />
+        </button>
+      </div>
     </div>
 
     <!-- 大小分开，或从小到大 -->
     <template v-else-if="level.mode === 'sizes' || level.mode === 'lineup'">
+      <p class="how">{{ level.mode === 'lineup' ? '按住积木拖进格子，或先点积木再点格子' : '大球进大房子，小球进小房子' }}</p>
       <div class="zones">
         <div
           v-for="zone in (level.mode === 'sizes' ? ['l', 's'] : ['s', 'm', 'l'])"
           :key="zone"
           class="zone"
           :data-drop-id="zone"
-          :class="{ 'hint-glow': assist }"
+          :class="{ 'hint-glow': assist, filled: items.some(one => placed[one.id] === zone) }"
           @pointerup="onZone(zone)"
+          @click="onZone(zone)"
         >
-          <Picture name="ball" color="blue" :size="zone === 'l' ? 'l' : zone === 's' ? 's' : 'm'" />
+          <p class="slot-name">{{ zone === 's' ? '小' : zone === 'm' ? '中' : '大' }}</p>
+          <!-- 空格子用浅色影子提示该放多大 -->
+          <div v-if="!items.some(one => placed[one.id] === zone)" class="ghost-slot">
+            <Picture
+              :name="level.mode === 'lineup' ? 'block-square' : 'ball'"
+              :color="level.mode === 'lineup' ? 'orange' : 'blue'"
+              :size="zone === 'l' ? 'l' : zone === 's' ? 's' : 'm'"
+            />
+          </div>
           <div class="inside">
             <div v-for="item in items.filter(one => placed[one.id] === zone)" :key="item.id" class="mini pop">
               <Picture :name="item.art" :color="item.color" :size="item.size" />
@@ -220,7 +238,7 @@ const rabbit = computed(() => nodes.value.find((node) => node.id === here.value)
           <Picture :name="item.art" :color="item.color" :size="item.size || 'm'" />
         </button>
       </div>
-    </template>
+    </template
 
     <!-- 规律 -->
     <div v-else-if="level.mode === 'pattern'" class="pattern">
@@ -366,14 +384,19 @@ const rabbit = computed(() => nodes.value.find((node) => node.id === here.value)
 
 <style scoped>
 .logic { height: 100%; display: flex; flex-direction: column; gap: 8px; padding: 0 12px 8px; min-height: 0; }
-.choices, .tray { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-.piece { width: 104px; height: 104px; padding: 8px; }
-.sample { width: 96px; height: 96px; margin: 0 auto 4px; background: #fff; border-radius: 24px; padding: 8px; box-shadow: var(--shadow); }
+.pick-board { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 0; }
+.sample-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.sample-tag, .slot-name, .how { margin: 0; font-weight: 800; color: #35506c; text-align: center; }
+.how { font-size: 14px; }
+.choices, .tray { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; }
+.piece { width: 100px; height: 100px; padding: 8px; flex: 0 0 auto; touch-action: none; }
+.piece.selected { outline: 4px solid #ffd23f; }
+.sample { width: 92px; height: 92px; background: #fff; border-radius: 24px; padding: 8px; box-shadow: var(--shadow); }
 .zones { display: flex; gap: 8px; }
-.zone { flex: 1; min-height: 140px; background: rgba(255,255,255,.88); border-radius: 22px; padding: 8px; box-shadow: var(--shadow); }
-.zone :deep(.wrap) { height: 54px; }
-.inside { display: flex; justify-content: center; }
-.mini { width: 64px; height: 64px; }
+.zone { flex: 1; min-height: 168px; background: rgba(255,255,255,.88); border-radius: 22px; padding: 8px; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ghost-slot { width: 72px; height: 72px; opacity: .28; pointer-events: none; }
+.inside { display: flex; justify-content: center; flex: 1; align-items: center; }
+.mini { width: 72px; height: 72px; }
 .row { display: flex; gap: 8px; justify-content: center; align-items: center; }
 .cell { width: 68px; height: 68px; background: #fff; border-radius: 18px; padding: 6px; box-shadow: var(--shadow); }
 .hole { display: grid; place-items: center; font-size: 28px; font-weight: 800; color: #ff9f43; }

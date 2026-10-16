@@ -3,21 +3,28 @@ import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
 /**
- * GitHub Pages 项目站在 /wonder-planet/ 下，资源要用这个前缀；
- * 其它静态托管仍用相对路径，方便把 dist 丢到任意目录或微信里打开。
+ * 本地开发始终用相对路径，避免终端里残留 GITHUB_PAGES 导致资源 404。
+ * 只有正式打 GitHub Pages 包时才加上 /wonder-planet/ 前缀。
  */
-const base = process.env.GITHUB_PAGES === 'true' ? '/wonder-planet/' : './'
+export default defineConfig(({ command }) => {
+  const forGitHubPages = command === 'build' && process.env.GITHUB_PAGES === 'true'
+  const base = forGitHubPages ? '/wonder-planet/' : './'
 
-export default defineConfig({
-  plugins: [vue()],
-  base,
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+  return {
+    plugins: [vue()],
+    base,
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
     },
-  },
-  server: {
-    host: true,
-    port: 5173,
-  },
+    server: {
+      host: '127.0.0.1',
+      port: 5173,
+    },
+    preview: {
+      host: '127.0.0.1',
+      port: 4173,
+    },
+  }
 })
