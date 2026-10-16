@@ -1,0 +1,11 @@
+{
+  // 阿里云 ESA Pages 构建配置：必须写安装命令，否则会跳过 npm install
+  "name": "wonder-planet",
+  "description": "奇妙小星球：给幼儿玩的绘本风格小游戏",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "assets": {
+    "directory": "./dist",
+    "notFoundStrategy": "singlePageApplication"
+  }
+}
